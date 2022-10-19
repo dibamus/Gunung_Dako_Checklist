@@ -19,7 +19,7 @@ colors <- setNames(c("#B5BA72","#a8ccde","#3b5374","#586A6A"),
                    nm = c("frog","lizard","snake","cumulative"))
 
 #### STEP 1 - Data Import/Cleanup ####
-df <- read_excel("DakoCatalog.xlsx",sheet = 1) %>% mutate(binom = "Genus_")
+df <- read_excel("Supplimentary Table S1 -DakoCatalog.xlsx",sheet = 1) %>% mutate(binom = "Genus_")
 
 colnames(df) <- sub(" ","_",colnames(df))
 colnames(df) <- gsub("[()]","",colnames(df))
