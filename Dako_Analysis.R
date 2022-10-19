@@ -74,8 +74,7 @@ dakoPoly <- st_read("shp_0/WDPA_WDOECM_Sep2022_Public_555571285_shp-polygons.shp
 
 map <- df %>% 
   leaflet() %>%
-  addProviderTiles(providers$Esri.WorldGrayCanvas) %>% 
-  addProviderTiles(providers$Esri.WorldShadedRelief, options = c(opacity = 0.3)) %>% # using ESRI World Topo for the background map tiles
+  addProviderTiles(providers$Esri.WorldTopo) %>% # using ESRI World Topo for the background map tiles
   addPolygons(data = dakoPoly$geometry,
               color = "#586A6A", weight = 2,
               fillColor = "#B5BA72",
@@ -93,3 +92,4 @@ map <- df %>%
   setView(lat = df$Latitude[10], lng = df$Longitude[10],zoom = 11) %>%
   addScaleBar(position = "bottomleft",
               options= scaleBarOptions(metric = TRUE))
+
