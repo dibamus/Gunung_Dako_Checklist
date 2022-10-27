@@ -12,7 +12,7 @@ library("cowplot")
 library("sf")
 
 #source in the functions necessary for analysis
-source("checklistFunctions.R")
+source("checklistFunctions2.R")
 
 ##SETUP - color palette for plotting
 colors <- setNames(c("#B5BA72","#a8ccde","#3b5374","#586A6A"),
@@ -34,12 +34,12 @@ df <- df %>%
 
 #### STEP 2 - Add groups/Look up Elevation####
 
-cutoffs <- c(700,1400) #- cutoff values for elevational bands
+cutoffs <- c(400,850,1500) #- cutoff values for elevational bands
 
-df <- df %>% addGroups() %>% elevBands(b1max = cutoffs[1], b2max = cutoffs[2])
+df <- df %>% addGroups() %>% elevBands(cutoffs)
 
-#put specimens missing coords in the middle elevational band
-df$eband[which(df$JAM_Number %in% c(15998,16201,16409))] <- "700-1400m" 
+#put specimens missing coords in the middle "upland" elevational band (found near 1000m camp)
+df$eband[which(df$JAM_Number %in% c(15998,16201,16409))] <- "850-1500m" 
 
 #### STEP 3 - Generate Plots ####
 accumulationPlots <- accCurve(df,colors)
@@ -93,3 +93,14 @@ map <- df %>%
   addScaleBar(position = "bottomleft",
               options= scaleBarOptions(metric = TRUE))
 
+#### Push files to gDrive ####
+ggsave(filename = paste0(mtn, "_AccumulationPlot.png"),
+       plot = accumulation,
+       width = 8, height = 6, units = "in",
+       bg = "white")
+
+ggsave(filename = paste0(mtn, "_ElevationPlot.png"),
+       plot = elevationPlot[[1]],
+       width = 8, height = 6.2, units = "in",
+       bg = "white")
+source('gDrive.R') #not included in published code
