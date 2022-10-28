@@ -63,6 +63,7 @@ accCurve <- function(df, palette){
                        minor_breaks = NULL,
                        limits = c(0,max(bandAccTable$Species_encountered) + 1),
                        expand = c(0,0)) +
+    scale_linetype_manual(values = c("solid","longdash","dotdash","dotted"))
     theme_minimal()
   
   #For accumulation curves by taxon
@@ -121,7 +122,22 @@ addGroups<- function(df){
   return(df)
 }
 
-elevBands <- function(df,bbs){ #df and a vector of cutoff elevations between elevational bands
+elevationLookup <-function(r){#uses the elevatr package to fill out gaps in elevation data
+  require('elevatr')
+  print(paste0("Estimating Elevation for JAM",df[r,]$JAM_Number))
+  if(is.na(df[r,]$Longitude)){
+    print(paste0("No coordinates - skipping JAM",df[r,]$JAM_Number))
+    return(NA)
+  }
+  else{
+    return(get_elev_point(data.frame(x = df[r,]$Longitude, y = df[r,]$Latitude),
+                          prj = "EPSG:4326", 
+                          src = "aws",
+                          z = 15)@data$elevation,)
+    print(paste0("Got coordinates for JAM",df[r,]$JAM_Number))}
+}
+
+elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations between elevational bands
   #label and set up elevational bands
   absmax <- bbs[length(bbs)] + 10000
   bbs <- c(bbs,absmax)
@@ -140,23 +156,18 @@ elevBands <- function(df,bbs){ #df and a vector of cutoff elevations between ele
            firstinband = rep(FALSE,times = length('Genus_species')))
   
   #insert absent elevation data
-  elevationLookup <-function(r){#uses the elevatr package to fil out gaps in elevation data
-    require('elevatr')
-    print(paste0("Estimating Elevation for JAM",df[r,]$JAM_Number))
-    if(is.na(df[r,]$Longitude)){
-      print(paste0("No coordinates - skipping JAM",df[r,]$JAM_Number))
-      return(NA)
-    }
-    else{
-      return(get_elev_point(data.frame(x = df[r,]$Longitude, y = df[r,]$Latitude),
-                            prj = "EPSG:4326", 
-                            src = "aws")@data$elevation)
-      print(paste0("Got coordinates for JAM",df[r,]$JAM_Number))}
-  }
-  
   
   #insert elevation for species without elevation data
-  df[which(is.na(df$Elevation)),]$Elevation <- as.double(sapply(which(is.na(df$Elevation)),elevationLookup))
+  
+  elevest <- df[which(is.na(df$Elevation) & !is.na(df$Longitude)),c("Longitude","Latitude")] %>%
+    as.data.frame %>%
+    get_elev_point(prj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
+                   src = 'aws', 
+                   z = 14) #14 (9.6m resolution) is the highest-resolution dataset available for Dako
+   
+  
+  df[which(is.na(df$Elevation) & !is.na(df$Longitude)),"Elevation"] <- elevest@data$elevation +
+    cf #add any correction factor to the elevations
   
   #assign bands to specimens
   df$eband <- cut(df$Elevation, 
