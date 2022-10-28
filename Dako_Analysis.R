@@ -25,6 +25,7 @@ colnames(df) <- sub(" ","_",colnames(df))
 colnames(df) <- gsub("[()]","",colnames(df))
 
 df <- df %>% mutate(binom = Genus_species) 
+df$Collection_Date <- as.POSIXct.Date(df$Collection_Date)
 
 #Remove specimens with uncertain affinities
 df <- df %>%
@@ -34,11 +35,40 @@ df <- df %>%
 
 #### STEP 2 - Add groups/Look up Elevation####
 
+#### OPTIONAL: Check elevatr accuracy ####
+elevs <- filter(df, !is.na(Latitude))[,c("Longitude","Latitude")] %>% 
+  as.data.frame()%>%
+  get_elev_point(prj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
+                 src = 'aws',
+                 z = 14)
+df$elevatr <- NA
+
+df$elevatr[which(!is.na(df$Latitude))] <- elevs@data$elevation
+
+df$elev_diff <- df$Elevation-df$elevatr
+
+
+ggplot(df)+
+  geom_density(aes(x = elev_diff))
+
+ggplot(df)+
+  geom_point(aes(x = Elevation, y= elevatr))
+
+elev_corr <- lm(elevatr ~Elevation, df, na.action = na.omit)
+
+#elevatr is biased to +2.8m vs our gps points
+correctionfactor <- mean(df$elev_diff%>% na.exclude())
+
+checkelevs <- filter(df, elev_diff < -50 | elev_diff >50) #r-squared of 99.989
+
+#### continue ####
+correctionfactor <- 2.8
+
 cutoffs <- c(400,850,1500) #- cutoff values for elevational bands
 
-df <- df %>% addGroups() %>% elevBands(cutoffs)
+df <- df %>% addGroups() %>% elevBands(cutoffs,correctionfactor)
 
-#put specimens missing coords in the middle "upland" elevational band (found near 1000m camp)
+#put specimens missing coords in the "upland" elevational band (found near 1000m camp)
 df$eband[which(df$JAM_Number %in% c(15998,16201,16409))] <- "850-1500m" 
 
 #### STEP 3 - Generate Plots ####
@@ -92,6 +122,7 @@ map <- df %>%
   setView(lat = df$Latitude[10], lng = df$Longitude[10],zoom = 11) %>%
   addScaleBar(position = "bottomleft",
               options= scaleBarOptions(metric = TRUE))
+
 
 #### Push files to gDrive ####
 ggsave(filename = paste0(mtn, "_AccumulationPlot.png"),
