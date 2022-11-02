@@ -106,8 +106,8 @@ accCurve <- function(df, palette){
 addGroups<- function(df){
   id <- df$'binom' # extract IDs
   #Lists of frog, snake, lizard, & turtle genera
-  frog <- c("Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Polypedates","Rhacophorus","Tadpole","tadpole")
-  snake <- c("Ahaetulla","Amphiesma","Boiga","Calamaria","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis")
+  frog <- c("Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Papurana","Polypedates","Rhacophorus","Tadpole","tadpole")
+  snake <- c("Ahaetulla","Amphiesma","Boiga","Calamaria","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis")
   lizard <- c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus")
   turtle <- c("Cuora","Leucocephalon")
   
@@ -152,8 +152,8 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   
   #get the df ready to write elevational bands to
   df <- df[order(df$Collection_Date),] %>% #reorder df by Collection Date
-    mutate(firstocc = rep(FALSE,times = length('Genus_species')),
-           firstinband = rep(FALSE,times = length('Genus_species')))
+    mutate(firstocc = rep(FALSE,times = length('binom')),
+           firstinband = rep(FALSE,times = length('binom')))
   
   #insert absent elevation data
   
@@ -189,8 +189,8 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   
   ####FIRST OCCURRENCES####
   #Generate first occurrence data (overall)
-  df$firstocc[match(unique(df$'Genus_species'),
-                    df$'Genus_species')] <- TRUE
+  df$firstocc[match(unique(df$'binom'),
+                    df$'binom')] <- TRUE
   
   #Generate first occurrence data (within band)
   #This marks which specimens represent the first occurrence of a species within each elevational band
@@ -202,8 +202,8 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   #I know it's ghastly
   #band 1
   for(i in 1:length(bbs)){
-    df$firstinband[which(df$eband == names(bbs[i]))[match(unique(df$Genus_species[which(df$eband == names(bbs[i]))]),
-                                                                                             df$Genus_species[which(df$eband == names(bbs[i]))])]] <- TRUE
+    df$firstinband[which(df$eband == names(bbs[i]))[match(unique(df$binom[which(df$eband == names(bbs[i]))]),
+                                                                                             df$binom[which(df$eband == names(bbs[i]))])]] <- TRUE
   }
 
   
@@ -254,9 +254,24 @@ missingSpecies <- function(df) {
 plotElev <- function(df, colors){
   require('ggplot2')
   require('cowplot')
+  require('divDyn')
   
   edf<-df[-which(is.na(df$Elevation)),]
   edf$Elevation <- as.integer(edf$Elevation)
+  
+  divDynGroup<- function(taxon = 'total',df){
+    if(taxon != 'total'){
+      df<-df%>%filter(group == taxon)
+    }
+    df$eBin <- df$Elevation %>% round(digits = -1) %>% as.factor
+    g <- divDyn(df,tax = 'binom', bin = "eBin")%>%select(c('eBin','divRT'))
+    g$eBin <- as.numeric(g$eBin)
+    g$group <- taxon
+    g
+  }
+  dd <- lapply(c("total",unique(edf$group)), #data on range-through diversity
+               FUN = divDynGroup, df = edf)%>%
+    bind_rows()
   
   elevation_order <- sapply(levels(as.factor(edf$binom)), #species list
                             function(x){max(filter(edf, binom == x)$Elevation)}) %>% # get max elevation for a species
@@ -308,10 +323,7 @@ plotElev <- function(df, colors){
     geom_linerange(data = min.max, aes(x = binom, ymin = min.el, ymax =  max.el), colour = colors[length(colors)], linetype = "dotted") +
     geom_point(data = edf, aes(x = binom, y=Elevation, group = group, color = group, fill = group, pch = group), size = 2.5)+
     
-    
-    # coord_cartesian(ylim = c(0,max(edf$Elevation*1.05)),
-    #                 xlim= c(0.5, length(levels(edf$binom))+0.5),
-    #                 expand = FALSE) +
+  
     scale_color_manual(values = colors) +
     scale_fill_manual(values = colors) +
     scale_shape_manual(values = c(17,19,25,4)) +
@@ -324,10 +336,31 @@ plotElev <- function(df, colors){
           legend.justification = c(0,1),
           legend.background = element_rect(fill = "white", colour = "white"))
   
+  #line graph of range-through diversity
+  rtDiv <- ggplot(dd, aes(x = eBin, y = divRT, group = group, color = group)) +
+    geom_line(size = 1.5)+ 
+    geom_vline(xintercept = bbs, color = colors[length(colors)], linetype = "dashed") +
+    scale_color_manual(values = colors) +
+    theme_minimal()+
+    coord_flip() +
+    xlab(NULL)+
+    
+    ylab("Species Diversity") +
+    theme_minimal() +
+    scale_y_continuous(minor_breaks = seq(0, max(dd$divRT), 1))+
+    theme(legend.position = "none",
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank(),
+          plot.margin = unit(c(0,0,0,0.5), "cm"),
+          plot.background = element_rect(fill='transparent', color=NA))
+  
   
   aligned <- align_plots(scatter, bar, align="hv", axis="br")
   combined <- plot_grid(aligned[[1]],aligned[[2]],rel_widths = c(4, 1))
-  return(list("combined" = combined, "scatter" = scatter, "bar" = bar))
+  rangeThrough <- align_plots(scatter, rtDiv, align="h", axis="tblr")
+  rangeThrough <- plot_grid(rangeThrough[[1]],rangeThrough[[2]],
+            rel_widths = c(length(unique(df$binom)), max(dd$divRT)))
+  return(list("combined" = combined, "scatter" = scatter, "bar" = bar, "rangeThrough" = rangeThrough))
 }
 
 speciesTable <- function(df) {
@@ -359,13 +392,13 @@ veganize <- function(df, elevation = FALSE){
   
   vdf<-filter(df,!is.na(df$Collection_Date))
   
-  spp <- unique(vdf$Genus_species) #species list
+  spp <- unique(vdf$binom) #species list
   
   if (elevation == FALSE){
     dat <- unique(vdf$Collection_Date) #collection date list
     
     sppcount <- function(x,y) { #count number of species x found on day Y
-      dim(filter(vdf,Genus_species == x, Collection_Date == y))[1]
+      dim(filter(vdf,binom == x, Collection_Date == y))[1]
     }
     
     f <- function(x) {sapply(dat,sppcount,x=x)} #counts for each species on day y
@@ -379,7 +412,7 @@ veganize <- function(df, elevation = FALSE){
     eb <- levels(vdf$eband) #collection date list
     
     sppcount <- function(x,y) { #count number of species x found in band y
-      dim(filter(vdf,Genus_species == x, eband == y))[1]
+      dim(filter(vdf,binom == x, eband == y))[1]
     }
     
     f <- function(x) {sapply(eb,sppcount,x=x)} #counts for each species on day y
