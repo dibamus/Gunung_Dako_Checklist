@@ -1,5 +1,5 @@
 #Gunung Dako Analysis
-setwd("path to your working directory with the scripts and data")
+#setwd("path to your working directory with the scripts and data")
 
 # Load in these libraries
 library("tidyverse")
@@ -19,19 +19,25 @@ colors <- setNames(c("#B5BA72","#a8ccde","#3b5374","#586A6A"),
                    nm = c("frog","lizard","snake","cumulative"))
 
 #### STEP 1 - Data Import/Cleanup ####
-df <- read_excel("Supplimentary Table S1 -DakoCatalog.xlsx",sheet = 1) %>% mutate(binom = "Genus_")
+df <- read_excel("Supplimentary Table S1 -DakoCatalog.xlsx",sheet = 1)
 
 colnames(df) <- sub(" ","_",colnames(df))
 colnames(df) <- gsub("[()]","",colnames(df))
 
 df <- df %>% mutate(binom = Genus_species) 
-df$Collection_Date <- as.POSIXct.Date(df$Collection_Date)
 
 #Remove specimens with uncertain affinities
 df <- df %>%
-  filter(Genus_species != "Sphenomorphus \"nigrilabris\" indet.") %>% #exclude indeterminate Sphenomorphus specimens
+  #filter(Genus_species != "Sphenomorphus \"nigrilabris\" indet.") %>% #exclude indeterminate Sphenomorphus specimens
   filter(JAM_Number != 16552) %>% #exlude unwanted specimen in city
-  filter(JAM_Number != 16535) #exclude turtle (Leucocephalon yunwoi)
+  filter(JAM_Number != 16535) %>% #exclude turtle (Leucocephalon yunwoi)
+  filter(JAM_Number != 16045) #exclude missing specimen
+
+#all the S. "nigrilabris indeterminate" are above 1000m, so put them in the "high" species
+df$binom[which(df$binom == "Sphenomorphus \"nigrilabris\" indet.")] <- "Sphenomorphus nigrilabris \"high\""
+
+#lump the indet. O. semipalmata in with the high ones
+df$binom[which(df$binom == "Occidozyga semipalmata indet.")] <- "Occidozyga semipalmata \"high\""
 
 #### STEP 2 - Add groups/Look up Elevation####
 
@@ -62,14 +68,12 @@ correctionfactor <- mean(df$elev_diff%>% na.exclude())
 checkelevs <- filter(df, elev_diff < -50 | elev_diff >50) #r-squared of 99.989
 
 #### continue ####
-correctionfactor <- 2.8
+cutoffs <- c(700,1400) #- cutoff values for elevational bands
 
-cutoffs <- c(400,850,1500) #- cutoff values for elevational bands
+df <- df %>% addGroups() %>% elevBands(cutoffs,cf=2.8)
 
-df <- df %>% addGroups() %>% elevBands(cutoffs,correctionfactor)
-
-#put specimens missing coords in the "upland" elevational band (found near 1000m camp)
-df$eband[which(df$JAM_Number %in% c(15998,16201,16409))] <- "850-1500m" 
+#put specimens missing coords in the 700-1400 elevational band (found near 1000m camp)
+df$eband[which(df$JAM_Number %in% c(15998,16201,16409))] <- levels(df$eband)[2]
 
 #### STEP 3 - Generate Plots ####
 accumulationPlots <- accCurve(df,colors)
@@ -125,13 +129,5 @@ map <- df %>%
 
 
 #### Push files to gDrive ####
-ggsave(filename = paste0(mtn, "_AccumulationPlot.png"),
-       plot = accumulation,
-       width = 8, height = 6, units = "in",
-       bg = "white")
-
-ggsave(filename = paste0(mtn, "_ElevationPlot.png"),
-       plot = elevationPlot[[1]],
-       width = 8, height = 6.2, units = "in",
-       bg = "white")
+mtn <- "Dako"
 source('gDrive.R') #not included in published code
