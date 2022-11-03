@@ -2,14 +2,17 @@
 #setwd("path to your working directory with the scripts and data")
 
 # Load in these libraries
-library("tidyverse")
-library("readxl")
-library("vegan")
-library("elevatr")
-library("reshape2")
-library("leaflet")
-library("cowplot")
-library("sf")
+require("tidyverse")
+require("readxl")
+require("vegan")
+require("elevatr")
+require("reshape2")
+require("leaflet")
+require("cowplot")
+require("sf")
+require('ggplot2')
+require('cowplot')
+require('divDyn')
 
 #source in the functions necessary for analysis
 source("checklistFunctions2.R")
@@ -40,9 +43,6 @@ df$binom[which(df$binom == "Occidozyga semipalmata indet.")] <- "Occidozyga semi
 
 #C. "aspinosus" to C.sp. "aspinosus"
 df$binom[which(df$binom == "Occidozyga semipalmata")] <- "Occidozyga semipalmata \"low\""
-
-#lump the indet. O. semipalmata in with the O. semipalmata low
-df$binom[which(df$binom == "Cyrtodactylus \"aspinosus\"")] <- "Cyrtodactylus sp. \"aspinosus\""
 
 #### STEP 2 - Add groups/Look up Elevation####
 
@@ -111,6 +111,8 @@ elevationcolors <- colorFactor(c("#A8CCDE","#4E819A","#3B5374"), df$eband)
 dakoPoly <- st_read("shp_0/WDPA_WDOECM_Sep2022_Public_555571285_shp-polygons.shp")
 # 
 
+df$Habitat[which(is.na(df$Habitat))] <- "not recorded"
+
 map <- df %>% 
   leaflet() %>%
   addProviderTiles(providers$Esri.WorldTopo) %>% # using ESRI World Topo for the background map tiles
@@ -120,12 +122,12 @@ map <- df %>%
               smoothFactor = 0.2,
               opacity = 1.0, fillOpacity = 0.5) %>%
   
-  addCircleMarkers(label = paste(df$JAM_Number,"-",df$Genus_species),
+  addCircleMarkers(label = paste(df$JAM_Number,"-",df$binom),
                    color = ~elevationcolors(df$eband),
-                   popup = paste(df$JAM_Number,"-",df$Genus_species,"<br>",
-                                 df$Collection_Date,"<br>",
-                                 "Lat =",df$Latitude,"  ","Lon =",df$Longitude,"  ","Elev =",df$Elevation,"<br>",
-                                 df$Habitat),
+                   popup = paste("<center>",df$JAM_Number, "-", df$binom, "<br>",
+                                 "Collected ",df$Collection_Date, "</center>","<br>",
+                                 "Elevation: ", df$Elevation, "m", "<br>",
+                                 "Habitat: ", df$Habitat),
                    radius=4) %>% #this adds in markers. on mouse-over, it will say their JAM ID and the binomial
   
   setView(lat = df$Latitude[10], lng = df$Longitude[10],zoom = 11) %>%
@@ -134,5 +136,6 @@ map <- df %>%
 
 
 #### Push files to gDrive ####
+
 mtn <- "Dako"
-source('gDrive.R') #not included in published code
+source('gDrive.R') #not included in published code; pushes results to shared folder

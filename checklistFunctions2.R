@@ -107,7 +107,7 @@ addGroups<- function(df){
   id <- df$'binom' # extract IDs
   #Lists of frog, snake, lizard, & turtle genera
   frog <- c("Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Papurana","Polypedates","Rhacophorus","Tadpole","tadpole")
-  snake <- c("Ahaetulla","Amphiesma","Boiga","Calamaria","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis")
+  snake <- c("Ahaetulla","Amphiesma","Boiga","Calamaria","Coelognathus","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis")
   lizard <- c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus")
   turtle <- c("Cuora","Leucocephalon")
   
