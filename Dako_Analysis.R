@@ -28,7 +28,6 @@ df <- df %>% mutate(binom = Genus_species)
 
 #Remove specimens with uncertain affinities
 df <- df %>%
-  #filter(Genus_species != "Sphenomorphus \"nigrilabris\" indet.") %>% #exclude indeterminate Sphenomorphus specimens
   filter(JAM_Number != 16552) %>% #exlude unwanted specimen in city
   filter(JAM_Number != 16535) %>% #exclude turtle (Leucocephalon yunwoi)
   filter(JAM_Number != 16045) #exclude missing specimen
@@ -38,6 +37,12 @@ df$binom[which(df$binom == "Sphenomorphus \"nigrilabris\" indet.")] <- "Sphenomo
 
 #lump the indet. O. semipalmata in with the high ones
 df$binom[which(df$binom == "Occidozyga semipalmata indet.")] <- "Occidozyga semipalmata \"high\""
+
+#C. "aspinosus" to C.sp. "aspinosus"
+df$binom[which(df$binom == "Occidozyga semipalmata")] <- "Occidozyga semipalmata \"low\""
+
+#lump the indet. O. semipalmata in with the O. semipalmata low
+df$binom[which(df$binom == "Cyrtodactylus \"aspinosus\"")] <- "Cyrtodactylus sp. \"aspinosus\""
 
 #### STEP 2 - Add groups/Look up Elevation####
 
