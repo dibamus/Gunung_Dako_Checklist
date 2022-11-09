@@ -1,5 +1,5 @@
 #Checklist functions that accommodate an arbitrary number of elevational bands
-accCurve <- function(df, palette){
+accCurve <- function(df, colors){
   
   df <- df[order(df$Collection_Date),] #reorder df by Collection Date
   
@@ -106,20 +106,36 @@ accCurve <- function(df, palette){
 addGroups<- function(df){
   id <- df$'binom' # extract IDs
   #Lists of frog, snake, lizard, & turtle genera
-  frog <- c("Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Papurana","Polypedates","Rhacophorus","Tadpole","tadpole")
-  snake <- c("Ahaetulla","Amphiesma","Boiga","Calamaria","Coelognathus","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis")
-  lizard <- c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus")
-  turtle <- c("Cuora","Leucocephalon")
+  grp <- list(
+  frog = c("Tadpole","Tadpoles","Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Papurana","Polypedates","Rhacophorus","Tadpole","tadpole"),
+  snake = c("Shed","Ahaetulla","Amphiesma","Boiga","Calamaria","Coelognathus","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis"),
+  lizard = c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus"),
+  turtle = c("Cuora","Leucocephalon")
+  )
   
   #find and replace ids with general ID (frog, snake, lizard, turtle)
-  id <- replace(id, grep(paste(frog,collapse="|"),id),"frog")
-  id <- replace(id, grep(paste(snake,collapse="|"),id),"snake")
-  id <- replace(id, grep(paste(lizard,collapse="|"),id),"lizard")
-  id <- replace(id, grep(paste(turtle,collapse="|"),id),"turtle")
+  grpmatch <- function(x, reference = grp){
+    x <- sub(" .*", "", x)
+    group <- x
+    for (i in names(reference)){
+     if(x %in% reference[[i[1]]]){
+       group <- i
+     }
+    }
+    return(group)
+  }
   
-  levels(as.factor(id)) # check that only frog,snake,lizard,or turtle are left in the id vector
-  df$group <- id
+  df$group <-sapply(id, FUN = grpmatch)
+  df$matched <- TRUE
+  df$matched[which(!(df$group %in% names(grp)))] <- FALSE
+  if(!all(df$matched)){cat("could not match JAM #s",df$JAM_Number[!df$matched])}
   return(df)
+}
+
+dfSetup <- function(df){
+  colnames(df) <- sub(" ","_",colnames(df))
+  colnames(df) <- gsub("[()]","",colnames(df))
+  df%>% mutate(binom = Genus_species) %>% problemRows()
 }
 
 elevationLookup <-function(r){#uses the elevatr package to fill out gaps in elevation data
@@ -158,6 +174,7 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   #insert absent elevation data
   
   #insert elevation for species without elevation data
+  if(any(is.na(df$Elevation))){
   
   elevest <- df[which(is.na(df$Elevation) & !is.na(df$Longitude)),c("Longitude","Latitude")] %>%
     as.data.frame %>%
@@ -168,7 +185,7 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   
   df[which(is.na(df$Elevation) & !is.na(df$Longitude)),"Elevation"] <- elevest@data$elevation +
     cf #add any correction factor to the elevations
-  
+  }
   #assign bands to specimens
   df$eband <- cut(df$Elevation, 
                   breaks = c(0,bbs),
@@ -252,11 +269,12 @@ missingSpecies <- function(df) {
 }
 
 plotElev <- function(df, colors){
+  require('tidyverse')
   require('ggplot2')
   require('cowplot')
   require('divDyn')
   
-  edf<-df[-which(is.na(df$Elevation)),]
+  edf<-df %>% filter(!is.na(Elevation))
   edf$Elevation <- as.integer(edf$Elevation)
   
   divDynGroup<- function(taxon = 'total',df){
@@ -361,6 +379,24 @@ plotElev <- function(df, colors){
   rangeThrough <- plot_grid(rangeThrough[[1]],rangeThrough[[2]],
             rel_widths = c(length(unique(df$binom)), max(dd$divRT)))
   return(list("combined" = combined, "scatter" = scatter, "bar" = bar, "rangeThrough" = rangeThrough))
+}
+
+problemRows <- function(df){
+  df$Flag <- NA
+  
+  df$Flag[c(which(is.na(df$JAM_Number)),
+            which(is.na(df$Collection_Date)),
+          which(is.na(df$Genus_species)),
+          which(is.na(df$Latitude)))] <- TRUE
+  return(df)
+}
+
+quickScrub <- function(df){
+  df <- df %>% dfSetup() %>% addGroups()
+  
+  df <- filter(df, is.na(Flag) & matched)
+  
+  filter(df, group != "turtle")
 }
 
 speciesTable <- function(df) {
