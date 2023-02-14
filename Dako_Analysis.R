@@ -36,13 +36,13 @@ df <- df %>%
   filter(JAM_Number != 16045) #exclude missing specimen
 
 #all the S. "nigrilabris indeterminate" are above 1000m, so put them in the "high" species
-df$binom[which(df$binom == "Sphenomorphus \"nigrilabris\" indet.")] <- "Sphenomorphus nigrilabris \"high\""
+df$binom[which(df$binom == "Sphenomorphus \"nigrilabris\" indet.")] <- "Sphenomorphus nigrilabris \"high elevation\""
 
 #lump the indet. O. semipalmata in with the high ones
-df$binom[which(df$binom == "Occidozyga semipalmata indet.")] <- "Occidozyga semipalmata \"high\""
+df$binom[which(df$binom == "Occidozyga semipalmata indet.")] <- "Occidozyga semipalmata \"high elevation\""
 
 #C. "aspinosus" to C.sp. "aspinosus"
-df$binom[which(df$binom == "Occidozyga semipalmata")] <- "Occidozyga semipalmata \"low\""
+df$binom[which(df$binom == "Occidozyga semipalmata")] <- "Occidozyga semipalmata \"low elevation\""
 
 #### STEP 2 - Add groups/Look up Elevation####
 
