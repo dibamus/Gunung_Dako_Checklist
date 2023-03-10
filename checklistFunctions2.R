@@ -346,9 +346,9 @@ plotElev <- function(df, colors){
     scale_fill_manual(values = colors) +
     scale_shape_manual(values = c(17,19,25,4)) +
     ylab("Elevation (m)") +
-    xlab(NULL) +
+    xlab("Species") +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    theme(axis.text.x = element_text(angle = 90, face = "italic", vjust = 0.5, hjust=1),
           plot.margin = unit(c(0,0,0,0), "cm"),
           legend.position = "none",
           legend.justification = c(0,1),
