@@ -92,6 +92,18 @@ alignedAccumulation <- align_plots(plotlist = list(accumulationPlots$taxonacc + 
 accumulation <- plot_grid(alignedAccumulation[[1]], alignedAccumulation[[2]], 
                           rel_widths = c(3,2),
                           rel_heights = c(2,1))
+plot_grid(elevationPlot$rtDiv + 
+            coord_cartesian() + 
+            ylab("Species Richness") + 
+            theme(axis.text.y = element_text(color = "black")),
+       elevationPlot$scatter + 
+         coord_flip() + 
+         scale_x_discrete(limits = rev) + 
+         theme(axis.text.x = element_text(face = "plain", angle = 0,vjust = 0.5, hjust=0.5),
+               axis.text.y = element_text (face = "italic")) +
+         facet_grid(rows = vars(group), scales = "free", space = "free"),
+        nrow = 2, rel_heights = c(1,4), align = "v", axis = "rl")
+
 
 #### STEP 4 - Generate Tables ####
 
@@ -114,7 +126,8 @@ dakoPoly <- st_read("shp_0/WDPA_WDOECM_Sep2022_Public_555571285_shp-polygons.shp
 df$Habitat[which(is.na(df$Habitat))] <- "not recorded"
 
 map <- df %>% 
-  leaflet() %>%
+  leaflet(options = leafletOptions(
+    attributionControl=FALSE,zoomControl = FALSE)) %>%
   addProviderTiles(providers$Esri.WorldTopo) %>% # using ESRI World Topo for the background map tiles
   addPolygons(data = dakoPoly$geometry,
               color = "#586A6A", weight = 2,

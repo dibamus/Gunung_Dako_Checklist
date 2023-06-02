@@ -108,8 +108,8 @@ addGroups<- function(df){
   #Lists of frog, snake, lizard, & turtle genera
   grp <- list(
   frog = c("Tadpole","Tadpoles","Chalcorana","Duttaphrynus","Hylarana","Ingerophrynus","Kaloula","Limnonectes","Occidozyga","Oreophryne","Papurana","Polypedates","Rhacophorus","Tadpole","tadpole"),
-  snake = c("Shed","Ahaetulla","Amphiesma","Boiga","Calamaria","Coelognathus","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Xenochrophis","Xenopeltis"),
-  lizard = c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus"),
+  snake = c("Shed","Ahaetulla","Amphiesma","Boiga","Calamaria","Coelognathus","Calamorhabdium","Chrysopelea","Cylindrophis","Dendrelaphis","Elaphe","Enhydris","Hebius","Oligodon","Ophiophagus","Psammodynastes","Rabdion","Rhabdophis","snake","Tropidolaemus","Typhlops","Xenochrophis","Xenopeltis"),
+  lizard = c("Bronchocela","Cyrtodactylus","Dibamus","Draco","Emoia","Eutropis","Gehyra","Gekko","Hemidactylus","Hemiphyllodactylus","Lamprolepis","Lipinia","Sphenomorphus","Tytthoscincus","Varanus"),
   turtle = c("Cuora","Leucocephalon")
   )
   
@@ -174,13 +174,16 @@ elevBands <- function(df,bbs,cf=0){ #df and a vector of cutoff elevations betwee
   #insert absent elevation data
   
   #insert elevation for species without elevation data
-  if(any(is.na(df$Elevation))){
+  
+  # if there are any specimens with coordinates but no elevation data
+  # insert elevations using elevatr
+  if(length(which(is.na(df$Elevation) & !is.na(df$Longitude))) !=0){
   
   elevest <- df[which(is.na(df$Elevation) & !is.na(df$Longitude)),c("Longitude","Latitude")] %>%
     as.data.frame %>%
     get_elev_point(prj = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
                    src = 'aws', 
-                   z = 14) #14 (9.6m resolution) is the highest-resolution dataset available for Dako
+                   z = 14) #14 (9.6m resolution) is the highest-resolution dataset available for Sulwesi
    
   
   df[which(is.na(df$Elevation) & !is.na(df$Longitude)),"Elevation"] <- elevest@data$elevation +
@@ -378,7 +381,7 @@ plotElev <- function(df, colors){
   rangeThrough <- align_plots(scatter, rtDiv, align="h", axis="tblr")
   rangeThrough <- plot_grid(rangeThrough[[1]],rangeThrough[[2]],
             rel_widths = c(length(unique(df$binom)), max(dd$divRT)))
-  return(list("combined" = combined, "scatter" = scatter, "bar" = bar, "rangeThrough" = rangeThrough))
+  return(list("combined" = combined, "scatter" = scatter, "bar" = bar, "rangeThrough" = rangeThrough, "rtDiv" = rtDiv))
 }
 
 problemRows <- function(df){
@@ -415,8 +418,7 @@ speciesTable <- function(df) {
                          n = speciestable$Number,
                          "SVL" = getrange(speciestable$minSVL,speciestable$maxSVL),
                          "Mass" = getrange(speciestable$minMASS,speciestable$maxMASS),
-                         "Elevation" = getrange(speciestable$minel,speciestable$maxel),
-                         Habitat = NA) %>%
+                         "Elevation" = getrange(speciestable$minel,speciestable$maxel)) %>%
     arrange(group,Species)
   
   return(list("speciesTable" = speciesTable,
